@@ -1,0 +1,42 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Parameters
+delta_t = 0.001  # Time step
+N = int(1 / delta_t)  # Number of steps
+trials = 10000  # Number of simulations
+
+# Monte Carlo simulation
+T_max_values = []
+for _ in range(trials):
+    # Generate random walk
+    Z = np.random.normal(0, np.sqrt(delta_t), N)
+    X = np.cumsum(Z)  # X(t) = cumulative sum of Z values (random walk)
+    X = np.insert(X, 0, 0)  # Include X(0) = 0
+
+    # Find T_max
+    T_max = np.argmax(X) * delta_t  # Index to time conversion
+    T_max_values.append(T_max)
+
+# Set the style for the plot
+sns.set(style="whitegrid", palette="muted")
+
+# Plot the distribution of T_max using seaborn's histplot with KDE
+plt.figure(figsize=(15, 10))
+sns.histplot(T_max_values, kde=True, bins=50, stat="density", color='blue', alpha=0.75)
+
+# Customize plot appearance
+plt.title('Distribution of $T_{max}$', fontsize=16)
+plt.xlabel('$T_{max}$', fontsize=14)
+plt.ylabel('Density', fontsize=14)
+plt.grid(True, alpha=0.3)
+
+# Show the plot
+plt.show()
+
+# Summary statistics
+mean_tmax = np.mean(T_max_values)
+var_tmax = np.var(T_max_values)
+print(f"Mean of T_max: {mean_tmax}")
+print(f"Variance of T_max: {var_tmax}")
