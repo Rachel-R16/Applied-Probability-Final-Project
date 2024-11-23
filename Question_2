@@ -1,1 +1,93 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Premier League 2024/25 Teams
+teams = [
+    "Liverpool", "Manchester City", "Chelsea", "Arsenal",
+    "Nottingham Forest", "Brighton And Hove Albion", "Fulham", "Newcastle United",
+    "Aston Villa", "Tottenham Hotspur", "Brentford", "Bournemouth",
+    "Manchester United", "West Ham United", "Everton", "Leicester City",
+    "Ipswich Town", "Crystal Palace", "Wolverhampton Wanderers", "Southampton"
+]
+
+# Updated Goals Scored and Conceded
+goals_scored = np.array([21, 22, 23, 18, 15, 19, 16, 13, 17, 23, 22, 15, 12, 13, 10, 15, 12, 8, 16, 7])
+goals_conceded = np.array([6, 13, 14, 12, 10, 15, 13, 11, 17, 23, 22, 15, 12, 19, 17, 23, 22, 15, 27, 21])
+
+# Matches Played (chelsea ans leicester city play 12)
+matches_played = np.array([11, 11, 12, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 11, 11, 11, 11])
+
+# Calculating Offensive and Defensive Strength
+offensive_strength = goals_scored / matches_played
+defensive_strength = goals_conceded / matches_played
+
+# For 20 teams, this generates 20x19 = 380 matches (38 per team, 19 home, 19 aaway)
+total_matches = [(i, j) for i in range(len(teams)) for j in range(len(teams)) if i != j]
+
+# Recent form (Win=3, Draw=1, Loss=0)
+recent_results = {
+    "Liverpool": [3, 3, 1, 3, 3], "Manchester City": [3, 3, 3, 0, 0],
+    "Chelsea": [0, 3, 1, 1, 3], "Arsenal": [3, 0, 1, 0, 1],
+    "Nottingham Forest": [1, 3, 3, 3, 0], "Brighton And Hove Albion": [3, 3, 1, 0, 3],
+    "Fulham": [0, 0, 1, 3, 3], "Newcastle United": [1, 0, 0, 3, 3],
+    "Aston Villa": [1, 3, 1, 0, 0], "Tottenham Hotspur": [0, 3, 0, 3, 0],
+    "Brentford": [3, 0, 3, 0, 3], "Bournemouth": [0, 3, 1, 3, 0],
+    "Manchester United": [1, 3, 0, 1, 3], "West Ham United": [3, 0, 3, 0, 1],
+    "Everton": [1, 3, 1, 0, 1], "Leicester City": [3, 0, 1, 0, 0],
+    "Ipswich Town": [0, 0, 0, 1, 3], "Crystal Palace": [0, 0, 3, 1, 0],
+    "Wolverhampton Wanderers": [0, 0, 1, 1, 3], "Southampton": [0, 0, 3, 0]
+}
+recent_form = np.array([np.mean(results) for results in recent_results.values()])
+
+# Monte Carlo Simulation
+NUM_SIMULATIONS = 10000
+final_points = np.zeros((NUM_SIMULATIONS, len(teams)))
+
+for sim in range(NUM_SIMULATIONS):
+    points = np.zeros(len(teams))
+
+    for home, away in total_matches:
+        # home = i, away = j in the model
+        O_home = offensive_strength[home] * (1 + 0.1 * recent_form[home])
+        D_away = defensive_strength[away] * (1 - 0.1 * recent_form[away])
+        O_away = offensive_strength[away] * (1 + 0.1 * recent_form[away])
+        D_home = defensive_strength[home] * (1 - 0.1 * recent_form[home])
+
+        # Expected goals scored
+        lambda_home = O_home * D_away * 1.1  # Home-field advantage
+        lambda_away = O_away * D_home
+
+        # Simulate goals
+        goals_home = np.random.poisson(lambda_home)
+        goals_away = np.random.poisson(lambda_away)
+
+        # Assign points
+        if goals_home > goals_away:
+            points[home] += 3
+        elif goals_home < goals_away:
+            points[away] += 3
+        else:
+            points[home] += 1
+            points[away] += 1
+
+    final_points[sim] = points
+
+# Aggregating Results
+average_points = final_points.mean(axis=0)
+team_results = pd.DataFrame({
+    "Team": teams,
+    "Avg Points": average_points,
+    "Win Probability": (final_points == final_points.max(axis=1)[:, None]).mean(axis=0),
+})
+
+# Sort by average points
+team_results = team_results.sort_values(by="Avg Points", ascending=False).reset_index(drop=True)
+
+print(team_results)
+# print(len(total_matches)) -- uncomment to make sure there are 380 matches total
+
+
+
 
