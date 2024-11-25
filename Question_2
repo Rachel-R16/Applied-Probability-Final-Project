@@ -4,12 +4,9 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from selenium.webdriver.common.by import By
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.metrics import mean_squared_error, accuracy_score
-import xgboost as xgb
-from sklearn.linear_model import LogisticRegression
-
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import poisson
 
 
 # Define year codes and URL
@@ -97,7 +94,7 @@ def get_strengths():
     merged_df = merged_df.fillna(0)
 
     merged_df['WeightedGoals'] = merged_df['Weight'] * merged_df['goals']
-    merged_df['WeightedMatches'] = merged_df['Weight'] * 20  # Assuming 20 matches per year
+    merged_df['WeightedMatches'] = merged_df['Weight'] * 38  # Assuming 38 matches per year
     merged_df['WeightedGoalsConceded'] = merged_df['Weight'] * merged_df['goals_conceded']
 
     # Avoid division by zero in GoalConversionRate calculation
@@ -181,11 +178,40 @@ def get_form():
     return pd.DataFrame(form_data)
 
 
+def get_scatter_plot(merged_data):
+    # Scatter plot of Offensive Strength vs Defensive Strength
+    plt.figure(figsize=(12, 8))
+
+    # Using regplot for the scatter plot with a regression line
+    sns.regplot(x='OffensiveStrength', y='DefensiveStrength', data=team_summary,
+                scatter_kws={'s': 100, 'alpha': 0.7}, line_kws={'color': 'blue', 'linewidth': 2},
+                ci=None, color='purple', marker='o')
+
+    # Set plot title and labels
+    plt.title('Offensive Strength vs Defensive Strength', fontsize=16, weight='bold', color='darkblue')
+    plt.xlabel('Offensive Strength', fontsize=14)
+    plt.ylabel('Defensive Strength', fontsize=14)
+
+    # Customize the plot appearance
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+
+    # Add team names to the scatter plot as annotations for clarity
+    for i in range(len(team_summary)):
+        plt.text(team_summary['OffensiveStrength'].iloc[i] + 0.1,
+                 team_summary['DefensiveStrength'].iloc[i],
+                 team_summary['Team'].iloc[i],
+                 fontsize=10, color='black', alpha=0.7)
+
+    # Show the plot
+    plt.tight_layout()
+    plt.show()
+
 
 team_summary = get_strengths()
 form_data = get_form()
-# Assume `team_summary` and `form_data` are DataFrames from the previous functions
+merged_data = pd.merge(team_summary, form_data, on='Team', how='outer')
+merged_data = merged_data.dropna(subset=['Form'])
+get_scatter_plot(merged_data)
 
-# Merge the dataframes on 'Team'
-merged_data = pd.merge(team_summary, form_data, on='Team', how='inner')
-print(merged_data)
