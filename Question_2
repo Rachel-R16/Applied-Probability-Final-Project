@@ -178,14 +178,17 @@ def get_form():
     return pd.DataFrame(form_data)
 
 
-def get_scatter_plot(merged_data):
+def get_scatter_plot(team_summary):
     # Scatter plot of Offensive Strength vs Defensive Strength
     plt.figure(figsize=(12, 8))
 
-    # Using regplot for the scatter plot with a regression line
+    # Use scatterplot to visualize the data
+    sns.scatterplot(x='OffensiveStrength', y='DefensiveStrength', data=team_summary,
+                    hue='Team', palette='Set2', s=100, alpha=0.7)
+
+    # Add a regression line (line of best fit)
     sns.regplot(x='OffensiveStrength', y='DefensiveStrength', data=team_summary,
-                scatter_kws={'s': 100, 'alpha': 0.7}, line_kws={'color': 'blue', 'linewidth': 2},
-                ci=None, color='purple', marker='o')
+                scatter=False, color='red', ci=None, line_kws={"linewidth": 2, "linestyle": "--"})
 
     # Set plot title and labels
     plt.title('Offensive Strength vs Defensive Strength', fontsize=16, weight='bold', color='darkblue')
@@ -197,12 +200,8 @@ def get_scatter_plot(merged_data):
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
 
-    # Add team names to the scatter plot as annotations for clarity
-    for i in range(len(team_summary)):
-        plt.text(team_summary['OffensiveStrength'].iloc[i] + 0.1,
-                 team_summary['DefensiveStrength'].iloc[i],
-                 team_summary['Team'].iloc[i],
-                 fontsize=10, color='black', alpha=0.7)
+    # Show the plot
+    plt.show()
 
     # Show the plot
     plt.tight_layout()
@@ -212,6 +211,7 @@ def get_scatter_plot(merged_data):
 team_summary = get_strengths()
 form_data = get_form()
 merged_data = pd.merge(team_summary, form_data, on='Team', how='outer')
-merged_data = merged_data.dropna(subset=['Form'])
-get_scatter_plot(merged_data)
+merged_data_new = merged_data.dropna(subset=['Form']).reset_index(drop=True)
+print(merged_data_new)
+get_scatter_plot(merged_data_new)
 
