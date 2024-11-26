@@ -1,1 +1,12 @@
+# READ
+# when running this program you will have to exit out of the Ad that pops up in the window on google chrome,
+# or else the program will likely crash
+
+import Get_Data as gd
+import Get_Graph as gg
+import Get_Table as gt
+
+data = gd.get_merged_data()
+gg.get_scatter_plot(data)
+gt.get_table(data)
 
