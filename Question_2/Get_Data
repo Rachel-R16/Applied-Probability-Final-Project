@@ -76,7 +76,16 @@ def get_strengths():
     finally:
         driver.quit()
 
-    # Convert both data lists to DataFrames
+    for entry in goals_data:
+        if '&' in entry['Team']:
+            entry['Team'] = entry['Team'].replace('&', 'and')
+    for entry in conceded_data:
+        if '&' in entry['Team']:
+            entry['Team'] = entry['Team'].replace('&', 'and')
+    for entry in shots_data:
+        if '&' in entry['Team']:
+            entry['Team'] = entry['Team'].replace('&', 'and')
+
     goals_df = pd.DataFrame(goals_data)
     conceded_df = pd.DataFrame(conceded_data)
     shots_df = pd.DataFrame(shots_data)
@@ -149,13 +158,13 @@ def get_form():
             weights = [5 - i for i in range(len(results))]
 
             # Get the club name (can be extracted from the 'league-table__team-name' span)
-            club_name = soup.find('span', class_='league-table__team-name league-table__team-name--long long').get_text()
+            team = soup.find('span', class_='league-table__team-name league-table__team-name--long long').get_text()
 
             # Create a list of dictionaries for each result and weight
             data = []
             for i in range(len(results)):
                 data.append({
-                    'Club Name': club_name,
+                    'Team': team,
                     'Result': numeric_results[i],
                     'Weight': weights[i]
                 })
@@ -169,9 +178,19 @@ def get_form():
             form = weighted_sum / weight_sum  # Calculate form
 
             # Add the club and form to the form_data list
-            form_data.append({'Team': club_name, 'Form': form})
+            form_data.append({'Team': team, 'Form': form})
 
     return pd.DataFrame(form_data)
+
+
+def replace_nans_with_average(merged_data_new):
+    # List of columns to replace NaN values with their averages
+    columns_to_replace = ['OffensiveStrength', 'DefensiveStrength', 'GoalConversionRate']
+    for column in columns_to_replace:
+        if column in merged_data_new.columns:
+            mean_value = merged_data_new[column].mean(skipna=True)
+            merged_data_new.fillna({column:mean_value}, inplace=True)
+    return merged_data_new
 
 
 def get_merged_data():
@@ -179,5 +198,5 @@ def get_merged_data():
     form_data = get_form()
     merged_data = pd.merge(team_summary, form_data, on='Team', how='outer')
     merged_data_new = merged_data.dropna(subset=['Form']).reset_index(drop=True)
+    replace_nans_with_average(merged_data_new)
     return merged_data_new
-
