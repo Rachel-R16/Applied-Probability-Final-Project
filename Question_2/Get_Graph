@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
+import pandas as pd
 
 
 def get_scatter_plot(team_summary):
@@ -32,50 +34,133 @@ def get_scatter_plot(team_summary):
     plt.show()
 
 
+def get_table(data):
+    # Update the teams list
+    teams = data['Team'].values
+    offensive_strength = data['OffensiveStrength'].values
+    defensive_strength = data['DefensiveStrength'].values
+    recent_form = data['Form'].values
+    goal_conversion = data['GoalConversionRate'].values
 
-#cumulative points graph (not a function) 
+    # Monte Carlo Simulation Parameters
+    NUM_SIMULATIONS = 10000
+    NUM_TEAMS = len(teams)
+    total_matches = [(i, j) for i in range(NUM_TEAMS) for j in range(NUM_TEAMS) if i != j]
+    final_points = np.zeros((NUM_SIMULATIONS, NUM_TEAMS))
 
-for match_idx, (home, away) in enumerate(total_matches):
-    λ_home = max(O_home * D_away * goal_conversion[home], 0.1)  # chnaged
-    λ_away = max(O_away * D_home * goal_conversion[away], 0.1)
+    for sim in range(NUM_SIMULATIONS):
+        points = np.zeros(NUM_TEAMS)
 
-    # Ensure λ_home and λ_away are not 0 or NaN
-    if np.isnan(λ_home) or λ_home <= 0:
-        λ_home = 0.01  # Assign a small positive value
-    if np.isnan(λ_away) or λ_away <= 0:
-        λ_away = 0.01  # Assign a small positive value
-    goals_home = np.random.poisson(λ_home)
-    goals_away = np.random.poisson(λ_away)
+        for home, away in total_matches:
+            # Adjust strengths using recent form
+            O_home = offensive_strength[home] * (1 + 0.05 * recent_form[home])  # chnaged
+            D_away = defensive_strength[away] * (1 - 0.05 * recent_form[away])
+            O_away = offensive_strength[away] * (1 + 0.05 * recent_form[away])
+            D_home = defensive_strength[home] * (1 - 0.05 * recent_form[home])
 
-    if goals_home > goals_away:
-        cumulative_points[match_idx:, home] += 3
-    elif goals_home < goals_away:
-        cumulative_points[match_idx:, away] += 3
-    else:
-        cumulative_points[match_idx:, home] += 1
-        cumulative_points[match_idx:, away] += 1
+            # Expected goals (λ values)
+            x_home = max(O_home * D_away * goal_conversion[home], 0.1)  # chnaged
+            x_away = max(O_away * D_home * goal_conversion[away], 0.1)
 
-# Plotting
-plt.figure(figsize=(14, 8))
-for team_idx, team in enumerate(teams):
-    plt.plot(cumulative_points[:, team_idx], label=team)
+            # Ensure λ_home and λ_away are not 0 or NaN
+            if np.isnan(x_home) or x_home <= 0:
+                x_home = 0.01  # Assign a small positive value
+            if np.isnan(x_away) or x_away <= 0:
+                x_away = 0.01  # Assign a small positive value
 
-plt.title("Cumulative Points Over Matches", fontsize=14)
-plt.xlabel("Matches")
-plt.ylabel("Cumulative Points")
+            # Simulate goals using Poisson distribution
+            goals_home = np.random.poisson(x_home)
+            goals_away = np.random.poisson(x_away)
 
-# Place the legend outside the plot
-plt.legend(loc="center left", bbox_to_anchor=(1, 0.5), title="Teams", fontsize=10)
+            # Assign points
+            if goals_home > goals_away:
+                points[home] += 3
+            elif goals_home < goals_away:
+                points[away] += 3
+            else:
+                points[home] += 1
+                points[away] += 1
 
-# Adjust layout to make space for the legend
-plt.subplots_adjust(right=0.75)  # Increase right margin to fit legend
-plt.show()
+        final_points[sim] = points
+
+    # Aggregate results
+    average_points = final_points.mean(axis=0)
+    win_probability = (final_points == final_points.max(axis=1)[:, None]).mean(axis=0)
+
+    # Create summary DataFrame
+    summary_table = pd.DataFrame({
+        "Team": teams,
+        "Avg Points": average_points,
+        "Win Probability": win_probability
+    }).sort_values(by="Avg Points", ascending=False).reset_index(drop=True)
+
+    return summary_table
+
+def get_cumm_plot(data):
+    teams = data['Team'].values
+    offensive_strength = data['OffensiveStrength'].values
+    defensive_strength = data['DefensiveStrength'].values
+    recent_form = data['Form'].values
+    goal_conversion = data['GoalConversionRate'].values
+    NUM_TEAMS = len(teams)
+    total_matches = [(i, j) for i in range(NUM_TEAMS) for j in range(NUM_TEAMS) if i != j]
+    cumulative_points = np.zeros((len(total_matches) + 1, NUM_TEAMS))
+
+    for home, away in total_matches:
+        # Adjust strengths using recent form
+        O_home = offensive_strength[home] * (1 + 0.05 * recent_form[home])  # chnaged
+        D_away = defensive_strength[away] * (1 - 0.05 * recent_form[away])
+        O_away = offensive_strength[away] * (1 + 0.05 * recent_form[away])
+        D_home = defensive_strength[home] * (1 - 0.05 * recent_form[home])
+        for match_idx, (home, away) in enumerate(total_matches):
+            x_home = max(O_home * D_away * goal_conversion[home], 0.1)  # chnaged
+            x_away = max(O_away * D_home * goal_conversion[away], 0.1)
+
+            # Ensure λ_home and λ_away are not 0 or NaN
+            if np.isnan(x_home) or x_home <= 0:
+                x_home = 0.01  # Assign a small positive value
+            if np.isnan(x_away) or x_away <= 0:
+                x_away = 0.01  # Assign a small positive value
+            goals_home = np.random.poisson(x_home)
+            goals_away = np.random.poisson(x_away)
+
+            if goals_home > goals_away:
+                cumulative_points[match_idx:, home] += 3
+            elif goals_home < goals_away:
+                cumulative_points[match_idx:, away] += 3
+            else:
+                cumulative_points[match_idx:, home] += 1
+                cumulative_points[match_idx:, away] += 1
+
+    # Plotting
+    plt.figure(figsize=(14, 8))
+    for team_idx, team in enumerate(teams):
+        plt.plot(cumulative_points[:, team_idx], label=team)
+
+    plt.title("Cumulative Points Over Matches", fontsize=14)
+    plt.xlabel("Matches")
+    plt.ylabel("Cumulative Points")
+
+    # Place the legend outside the plot
+    plt.legend(loc="center left", bbox_to_anchor=(1, 0.5), title="Teams", fontsize=10)
+
+    # Adjust layout to make space for the legend
+    plt.subplots_adjust(right=0.75)  # Increase right margin to fit legend
+    plt.show()
+
+    # Place the legend outside the plot
+    plt.legend(loc="center left", bbox_to_anchor=(1, 0.5), title="Teams", fontsize=10)
+
+    # Adjust layout to make space for the legend
+    plt.subplots_adjust(right=0.75)  # Increase right margin to fit legend
+    plt.show()
 
 
-#average points graph (also not a funciton) 
-plt.figure(figsize=(12, 6))
-sns.barplot(data=summary_table, x="Avg Points", y="Team", palette="viridis")
-plt.title("Average Points per Team (Predicted League Table)", fontsize=16)
-plt.xlabel("Average Points")
-plt.ylabel("Team")
-plt.show()
+def get_summary_graph(summary_table):
+    # average points graph (also not a funciton)
+    plt.figure(figsize=(12, 6))
+    sns.barplot(data=summary_table, x="Avg Points", y="Team", palette="viridis")
+    plt.title("Average Points per Team (Predicted League Table)", fontsize=16)
+    plt.xlabel("Average Points")
+    plt.ylabel("Team")
+    plt.show()
