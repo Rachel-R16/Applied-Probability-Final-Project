@@ -1,1 +1,33 @@
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+def get_scatter_plot(team_summary):
+    # Scatter plot of Offensive Strength vs Defensive Strength
+    plt.figure(figsize=(12, 8))
+
+    # Use scatterplot to visualize the data
+    sns.scatterplot(x='OffensiveStrength', y='DefensiveStrength', data=team_summary,
+                    hue='Team', palette='Set2', s=100, alpha=0.7)
+
+    # Add a regression line (line of best fit)
+    sns.regplot(x='OffensiveStrength', y='DefensiveStrength', data=team_summary,
+                scatter=False, color='red', ci=None, line_kws={"linewidth": 2, "linestyle": "--"})
+
+    # Set plot title and labels
+    plt.title('Offensive Strength vs Defensive Strength', fontsize=16, weight='bold', color='darkblue')
+    plt.xlabel('Offensive Strength', fontsize=14)
+    plt.ylabel('Defensive Strength', fontsize=14)
+
+    # Customize the plot appearance
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+
+    # Show the plot
+    plt.show()
+
+    # Show the plot
+    plt.tight_layout()
+    plt.show()
 
