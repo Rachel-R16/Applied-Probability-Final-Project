@@ -4,9 +4,11 @@
 
 import Get_Data as gd
 import Get_Graph as gg
-import Get_Table as gt
 
 data = gd.get_merged_data()
+print(data.to_string())
 gg.get_scatter_plot(data)
-gt.get_table(data)
-
+gg.get_cumm_plot(data)
+summary_table = gg.get_table(data)
+gg.get_summary_graph(summary_table)
+print(summary_table.to_string())
